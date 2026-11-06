@@ -6,11 +6,11 @@ test('catalog links open each recipe with ingredients and a method', async ({ pa
   const errors = [];
   page.on('pageerror', (error) => errors.push(error.message));
   await page.goto('/');
-  await expect(page.locator('.recipe-card')).toHaveCount(recipes.length);
+  await expect(page.locator('.recipe-card:not(.extra-card)')).toHaveCount(recipes.length);
 
   const sortedRecipes = [...recipes].sort((a, b) => a.name.localeCompare(b.name, 'da'));
-  await expect(page.locator('.recipe-name')).toHaveText(sortedRecipes.map(({ name }) => name));
-  await expect(page.locator('.recipe-card .recipe-category')).toHaveText(
+  await expect(page.locator('.recipe-card:not(.extra-card) .recipe-name')).toHaveText(sortedRecipes.map(({ name }) => name));
+  await expect(page.locator('.recipe-card:not(.extra-card) .recipe-category')).toHaveText(
     sortedRecipes.map(({ category }) => da.recipeGroups[category]),
   );
 

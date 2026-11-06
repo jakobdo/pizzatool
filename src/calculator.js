@@ -1,4 +1,4 @@
-const yeastFactors = {
+export const yeastFactors = {
   fresh: 1,
   activeDry: 3,
   instantDry: 4,

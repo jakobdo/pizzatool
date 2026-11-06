@@ -236,3 +236,24 @@ h1[tabindex="-1"]:focus { outline: none; }
 .step-action { position: absolute; inset: 0; width: 100%; padding: 0; border: 0; border-radius: inherit; background: transparent; }
 .step-action:focus-visible { outline: 2px solid var(--tomato-dark); outline-offset: 2px; }
 .step-complete p { text-decoration: line-through; }
+
+.extra-catalog { margin-top: 42px; padding-top: 26px; border-top: 1px solid var(--line); }
+.extra-catalog > p, .extra-description { color: #6f6a61; font-size: 13px; line-height: 1.5; }
+.extra-catalog > p { margin: 8px 0 0; }
+.extra-content { max-width: 860px; }
+.extra-content h2 { font: 800 18px/1.3 "Manrope", sans-serif; }
+.extra-content p, .extra-ingredients { color: #514d44; font-size: 15px; line-height: 1.6; }
+.extra-fields, .scale-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-bottom: 14px; }
+.extra-fields label, .scale-row label { display: grid; gap: 5px; align-content: start; font-size: 13px; font-weight: 700; }
+.extra-fields input, .extra-fields select, .scale-row input { width: 100%; min-width: 0; padding: 9px; border: 1px solid #cfc8bb; border-radius: 6px; background: white; }
+.extra-results { margin: 18px 0 0; }
+.extra-results > div { display: flex; justify-content: space-between; gap: 10px; padding: 7px 0; border-top: 1px solid var(--line); }
+.extra-results dd { margin: 0; font-weight: 700; white-space: nowrap; }
+.extra-content .extra-result { background: #ebeee3; padding: 10px; border-radius: 6px; }
+.extra-table { overflow-x: auto; }
+.extra-table table { border-collapse: collapse; width: 100%; font-size: 14px; }
+.extra-table th, .extra-table td { padding: 8px; border-bottom: 1px solid var(--line); text-align: left; }
+.extra-table thead th { background: #f2efe8; }
+.extra-add { background: #fff4eb; border: 1px solid #dba48e; border-radius: 6px; color: var(--tomato-dark); padding: 8px 12px; font-weight: 700; }
+.extra-source { margin: 12px 0 0; }
+.extra-source a { color: var(--tomato-dark); }

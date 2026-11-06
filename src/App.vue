@@ -1,18 +1,26 @@
 <script>
 import { calculateBatch } from './calculator.js';
 import { da as copy } from './da.js';
+import ExtraPage from './ExtraPage.vue';
+import { extras } from './extras.js';
 import { methods } from './methods.js';
 import { readPreferences, savePreferences } from './preferences.js';
 import { recipes } from './recipes.js';
 
 const recipePath = '#/opskrift/';
+const extraPath = '#/oevrigt/';
 const sortedRecipes = [...recipes].sort((a, b) => a.name.localeCompare(b.name, 'da'));
 
 function recipeFromHash() {
   return recipes.find((recipe) => window.location.hash === recipePath + recipe.id);
 }
 
+function extraFromHash() {
+  return extras.find((entry) => window.location.hash === extraPath + entry.id);
+}
+
 export default {
+  components: { ExtraPage },
   data() {
     const preferences = readPreferences();
     const recipe = recipeFromHash();
@@ -21,6 +29,9 @@ export default {
       copy,
       recipes: sortedRecipes,
       recipePath,
+      extraPath,
+      extras,
+      selectedExtra: extraFromHash(),
       selectedRecipe: recipe,
       pizzaCount: this.bounded(preferences.pizzaCount, 6, 1, 2000),
       doughPerPizza: this.bounded(preferences.doughPerPizza, 270, 100, 1000),
@@ -98,7 +109,9 @@ export default {
     },
     syncRoute() {
       const recipe = recipeFromHash();
-      if (recipe?.id === this.selectedRecipe?.id) return;
+      const extra = extraFromHash();
+      if (recipe?.id === this.selectedRecipe?.id && extra?.id === this.selectedExtra?.id) return;
+      this.selectedExtra = extra;
       this.selectedRecipe = recipe;
       this.settings = recipe ? this.recipeSettings(recipe) : null;
       this.yeastType = this.recipeYeast(recipe, this.yeastByRecipe);
@@ -109,7 +122,8 @@ export default {
       });
     },
     updateTitle() {
-      document.title = this.selectedRecipe ? `${this.selectedRecipe.name} · PizzaTool` : copy.documentTitle;
+      const name = this.selectedRecipe?.name ?? this.selectedExtra?.name;
+      document.title = name ? `${name} · PizzaTool` : copy.documentTitle;
     },
     saveYeast() {
       this.yeastByRecipe[this.selectedRecipe.id] = this.yeastType;
@@ -168,7 +182,7 @@ export default {
 </header>
 
 <main class="page-shell">
-  <template v-if="!selectedRecipe">
+  <template v-if="!selectedRecipe && !selectedExtra">
     <section class="intro">
       <p class="eyebrow"><span class="eyebrow-line"></span> {{ copy.eyebrow }}</p>
       <h1 ref="pageTitle" tabindex="-1">{{ copy.title }}<br /><span>{{ copy.titleAccent }}</span></h1>
@@ -177,7 +191,7 @@ export default {
 
     <section class="recipe-catalog" aria-labelledby="catalog-title">
       <div class="catalog-heading">
-        <h2 id="catalog-title">{{ copy.chooseRecipe }}</h2>
+        <h2 id="catalog-title">{{ copy.pizzaRecipes }}</h2>
         <span>{{ recipes.length }} {{ copy.recipes }}</span>
       </div>
       <div class="recipe-grid">
@@ -189,6 +203,31 @@ export default {
         </a>
       </div>
     </section>
+
+    <section class="recipe-catalog extra-catalog" aria-labelledby="extra-title">
+      <div class="catalog-heading">
+        <h2 id="extra-title">{{ copy.extras }}</h2>
+      </div>
+      <p>{{ copy.extrasIntro }}</p>
+      <div class="recipe-grid">
+        <a v-for="entry in extras" :key="entry.id" class="recipe-card extra-card" :href="extraPath + entry.id">
+          <span class="recipe-category">{{ entry.kind }}</span>
+          <span class="recipe-name">{{ entry.name }}</span>
+          <span class="extra-description">{{ entry.description }}</span>
+          <span class="recipe-arrow" aria-hidden="true">→</span>
+        </a>
+      </div>
+    </section>
+  </template>
+
+  <template v-else-if="selectedExtra">
+    <header class="recipe-header">
+      <a class="back-link" href="#/">← {{ copy.backHome }}</a>
+      <p class="recipe-category">{{ copy.extras }} · {{ selectedExtra.kind }}</p>
+      <h1 ref="pageTitle" tabindex="-1">{{ selectedExtra.name }}</h1>
+      <p>{{ selectedExtra.description }}</p>
+    </header>
+    <ExtraPage :key="selectedExtra.id" :entry="selectedExtra" :pizza-count="safePizzaCount" :dough-weight="safeDoughWeight" />
   </template>
 
   <template v-else>
