@@ -175,7 +175,7 @@ function guestEstimate(slices) {
     <section v-if="articles[entry.id]" aria-labelledby="article-list-title">
       <h2 id="article-list-title">{{ entry.kind }}</h2>
       <div class="recipe-grid article-grid">
-        <a v-for="article in articles[entry.id]" :key="article.id" class="recipe-card" :href="`${path}/${article.id}`">
+        <a v-for="article in articles[entry.id]" :key="article.id" class="recipe-card" :href="`${path}/${article.id}/`">
           <span class="recipe-name">{{ article.title }}</span>
           <span v-if="article.intro" class="recipe-time">{{ article.intro }}</span>
           <span class="recipe-arrow" aria-hidden="true">→</span>

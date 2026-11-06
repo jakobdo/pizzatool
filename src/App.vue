@@ -8,35 +8,41 @@ import { readPreferences, savePreferences } from './preferences.js';
 import { recipes } from './recipes.js';
 import RecipeMethod from './RecipeMethod.vue';
 
-const recipePath = '#/opskrift/';
-const extraPath = '#/oevrigt/';
+// This module lives one level below the site root in development and in the built bundle.
+const homePath = new URL(/* @vite-ignore */ '../', import.meta.url).pathname;
+const recipePath = homePath + 'opskrift/';
+const extraPath = homePath + 'oevrigt/';
 const sortedRecipes = [...recipes].sort((a, b) => a.name.localeCompare(b.name, 'da'));
 
-function recipeFromHash() {
-  return recipes.find((recipe) => window.location.hash === recipePath + recipe.id);
-}
-
-function extraRouteFromHash() {
-  const hash = window.location.hash;
+function extraRoute(path) {
   for (const entry of extras) {
-    const path = extraPath + entry.id;
-    if (hash === path) return { entry };
-    const article = articles[entry.id]?.find(({ id }) => hash === `${path}/${id}`);
+    const category = extraPath + entry.id;
+    if (path === category) return { entry };
+    const article = articles[entry.id]?.find(({ id }) => path === `${category}/${id}`);
     if (article) return { entry, article };
   }
   return {};
+}
+
+function currentRoute() {
+  const legacy = window.location.pathname === homePath && window.location.hash.startsWith('#/');
+  const path = (legacy ? homePath + window.location.hash.slice(2) : window.location.pathname).replace(/\/$/, '');
+  const recipe = recipes.find(({ id }) => path === recipePath + id);
+  const { entry, article } = extraRoute(path);
+  return { recipe, entry, article, legacyPath: legacy && (recipe || entry) ? path + '/' : null };
 }
 
 export default {
   components: { ExtraPage, RecipeMethod },
   data() {
     const preferences = readPreferences();
-    const recipe = recipeFromHash();
-    const { entry, article } = extraRouteFromHash();
+    const { recipe, entry, article, legacyPath } = currentRoute();
     const yeastByRecipe = preferences.yeastByRecipe ?? {};
     return {
       copy,
       recipes: sortedRecipes,
+      homePath,
+      legacyPath,
       recipePath,
       extraPath,
       extras,
@@ -52,11 +58,11 @@ export default {
     };
   },
   mounted() {
-    window.addEventListener('hashchange', this.syncRoute);
+    if (this.legacyPath) {
+      window.location.replace(this.legacyPath + window.location.search);
+      return;
+    }
     this.updateTitle();
-  },
-  beforeUnmount() {
-    window.removeEventListener('hashchange', this.syncRoute);
   },
   watch: {
     pizzaCount: 'persistPreferences',
@@ -127,22 +133,6 @@ export default {
       const yeast = saved[recipe?.id];
       return Object.hasOwn(copy.yeastNames, yeast) ? yeast : recipe?.yeastType ?? 'fresh';
     },
-    syncRoute() {
-      const recipe = recipeFromHash();
-      const { entry, article } = extraRouteFromHash();
-      if (recipe?.id === this.selectedRecipe?.id && entry?.id === this.selectedExtra?.id &&
-        article?.id === this.selectedArticle?.id) return;
-      this.selectedExtra = entry;
-      this.selectedArticle = article;
-      this.selectedRecipe = recipe;
-      this.settings = recipe ? this.recipeSettings(recipe) : null;
-      this.yeastType = this.recipeYeast(recipe, this.yeastByRecipe);
-      this.updateTitle();
-      this.$nextTick(() => {
-        this.$refs.pageTitle?.focus({ preventScroll: true });
-        window.scrollTo(0, 0);
-      });
-    },
     updateTitle() {
       const name = this.selectedRecipe?.name ?? this.selectedArticle?.title ?? this.selectedExtra?.name;
       document.title = name ? `${name} · PizzaTool` : copy.documentTitle;
@@ -192,7 +182,7 @@ export default {
 
 <template>
 <header class="topbar">
-  <a class="brand" href="#/" :aria-label="copy.home">
+  <a class="brand" :href="homePath" :aria-label="copy.home">
     <span class="brand-mark" aria-hidden="true">P</span>
     <span>Pizza<span class="brand-light">Tool</span></span>
   </a>
@@ -203,7 +193,7 @@ export default {
   <template v-if="!selectedRecipe && !selectedExtra">
     <section class="intro">
       <p class="eyebrow"><span class="eyebrow-line"></span> {{ copy.eyebrow }}</p>
-      <h1 ref="pageTitle" tabindex="-1">{{ copy.title }}<br /><span>{{ copy.titleAccent }}</span></h1>
+      <h1>{{ copy.title }}<br /><span>{{ copy.titleAccent }}</span></h1>
       <p class="intro-copy">{{ copy.intro }}</p>
     </section>
 
@@ -213,7 +203,7 @@ export default {
         <span>{{ recipes.length }} {{ copy.recipes }}</span>
       </div>
       <div class="recipe-grid">
-        <a v-for="recipe in recipes" :key="recipe.id" class="recipe-card" :href="recipePath + recipe.id">
+        <a v-for="recipe in recipes" :key="recipe.id" class="recipe-card" :href="recipePath + recipe.id + '/'">
           <span class="recipe-category">{{ copy.recipeGroups[recipe.category] }}</span>
           <span class="recipe-name">{{ recipe.name }}</span>
           <span class="recipe-time">{{ recipe.time }}</span>
@@ -228,7 +218,7 @@ export default {
       </div>
       <p>{{ copy.extrasIntro }}</p>
       <div class="recipe-grid">
-        <a v-for="entry in extras" :key="entry.id" class="recipe-card extra-card" :href="extraPath + entry.id">
+        <a v-for="entry in extras" :key="entry.id" class="recipe-card extra-card" :href="extraPath + entry.id + '/'">
           <span class="recipe-category">{{ entry.kind }}</span>
           <span class="recipe-name">{{ entry.name }}</span>
           <span class="extra-description">{{ entry.description }}</span>
@@ -240,9 +230,9 @@ export default {
 
   <template v-else-if="selectedArticle">
     <header class="recipe-header">
-      <a class="back-link" :href="extraPath + selectedExtra.id">← {{ selectedExtra.name }}</a>
+      <a class="back-link" :href="extraPath + selectedExtra.id + '/'">← {{ selectedExtra.name }}</a>
       <p class="recipe-category">{{ copy.extras }} · {{ selectedExtra.name }}</p>
-      <h1 ref="pageTitle" tabindex="-1">{{ selectedArticle.title }}</h1>
+      <h1>{{ selectedArticle.title }}</h1>
       <p v-if="selectedArticle.intro" class="recipe-duration">{{ selectedArticle.intro }}</p>
     </header>
     <section v-if="selectedArticle.ingredients" class="recipe-phase article-ingredients">
@@ -268,9 +258,9 @@ export default {
 
   <template v-else-if="selectedExtra">
     <header class="recipe-header">
-      <a class="back-link" href="#/">← {{ copy.backHome }}</a>
+      <a class="back-link" :href="homePath">← {{ copy.backHome }}</a>
       <p class="recipe-category">{{ copy.extras }} · {{ selectedExtra.kind }}</p>
-      <h1 ref="pageTitle" tabindex="-1">{{ selectedExtra.name }}</h1>
+      <h1>{{ selectedExtra.name }}</h1>
       <p>{{ selectedExtra.description }}</p>
     </header>
     <ExtraPage :key="selectedExtra.id" :entry="selectedExtra" :path="extraPath + selectedExtra.id" :pizza-count="safePizzaCount" :dough-weight="safeDoughWeight" />
@@ -278,9 +268,9 @@ export default {
 
   <template v-else>
     <header class="recipe-header">
-      <a class="back-link" href="#/">← {{ copy.allRecipes }}</a>
+      <a class="back-link" :href="homePath">← {{ copy.allRecipes }}</a>
       <p class="recipe-category">{{ copy.recipeGroups[selectedRecipe.category] }}</p>
-      <h1 ref="pageTitle" tabindex="-1">{{ selectedRecipe.name }}</h1>
+      <h1>{{ selectedRecipe.name }}</h1>
       <p class="recipe-duration">{{ settings.time }}</p>
     </header>
 

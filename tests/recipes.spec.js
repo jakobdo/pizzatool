@@ -15,7 +15,7 @@ test('catalog links open each recipe with ingredients and a method', async ({ pa
   );
 
   for (const recipe of recipes) {
-    await page.locator(`a[href="#/opskrift/${recipe.id}"]`).click();
+    await page.locator(`a[href="/opskrift/${recipe.id}/"]`).click();
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(recipe.name);
     await expect(page.locator('.ingredient-row').first()).toBeVisible();
     await expect(page.locator('[aria-current="step"]')).toBeVisible();
@@ -26,7 +26,7 @@ test('catalog links open each recipe with ingredients and a method', async ({ pa
 
 test('Biga Pizza V1 scales and remembers settings and clickable steps on mobile', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto('/#/opskrift/bk-biga1');
+  await page.goto('/opskrift/bk-biga1/');
   await expect(page.locator('.recipe-phase ol > li')).toHaveCount(11);
   await expect(page.locator('[aria-current="step"]')).toContainText('965 g Mel');
   await page.getByLabel(/Antal pizzaer/).fill('4');
