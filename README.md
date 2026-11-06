@@ -1,19 +1,47 @@
 # PizzaTool
 
-PizzaTool is a browser-based pizza dough planner inspired by the original Excel
-workbook. Choose a dough style, set the number and size of your pizzas, and
-select fresh, active dry, or instant dry yeast to scale the ingredients.
+PizzaTool beregner ingredienser til pizzadej ud fra opskrift, antal pizzaer og
+dejvægt. Vælg mellem italienske opskrifter, New York Style og Bagerkokkens corner.
+Opskrifterne er baseret på PizzaTool v14.6 af Torben Holm Kristensen.
 
-The recipe details—hydration, salt, oil, sweetener, yeast percentage,
-fermentation time, and preferment proportions—are available under **Adjust
-recipe details**.
+## Kør lokalt
 
-## Website
+Brug Node.js 22.12 eller nyere, eller Node.js 20 fra version 20.19.
 
-Visit [PizzaTool](https://jakobdo.github.io/pizzatool/).
+```sh
+npm ci
+npm run dev
+```
 
-## Run it
+Åbn den lokale adresse, Vite viser i terminalen.
 
-Open `index.html` in a browser, or serve this directory with any static web
-server. Vue 3 is loaded from unpkg, so an internet connection is needed to load
-the app.
+## Byg og udgiv
+
+```sh
+npm run build
+npm run preview
+```
+
+Bygget ligger i `dist/`. Brug preview-kommandoen til at prøve bygget lokalt.
+Udgiv indholdet af `dist/` på en statisk webserver. De relative stier virker
+også under en undermappe som `/pizzatool/` på GitHub Pages.
+
+## Sprog
+
+Tekster til brugerfladen ligger i `src/da.js`. Opskriftsdata ligger i `src/recipes.js`, og
+fremgangsmåderne ligger i `src/methods.js`.
+
+## Test og automatisk udgivelse
+
+```sh
+npm test
+npm run build
+npx playwright install chromium
+npm run test:e2e
+```
+
+Browserprøverne kører mod produktionsbygget. GitHub Actions kører begge
+testsuiter og bygger siden ved pull requests til `main` og ved pushes til
+`main`. Når alle kontroller består på `main`, udgiver workflowet det testede
+`dist/`-byg til GitHub Pages. Vælg **GitHub Actions** som kilde under
+**Settings → Pages**.
