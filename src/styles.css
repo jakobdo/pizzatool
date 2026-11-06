@@ -257,3 +257,7 @@ h1[tabindex="-1"]:focus { outline: none; }
 .extra-add { background: #fff4eb; border: 1px solid #dba48e; border-radius: 6px; color: var(--tomato-dark); padding: 8px 12px; font-weight: 700; }
 .extra-source { margin: 12px 0 0; }
 .extra-source a { color: var(--tomato-dark); }
+
+.article-grid .recipe-card { min-height: 100px; }
+.article-ingredients, .article-source { max-width: 860px; margin-inline: auto; }
+.article-ingredients .extra-ingredients { margin-bottom: 0; line-height: 1.7; }

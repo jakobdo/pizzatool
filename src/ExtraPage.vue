@@ -6,6 +6,7 @@ import { articles, flourStrength, pizzaSizes } from './extras.js';
 
 const props = defineProps({
   entry: { type: Object, required: true },
+  path: { type: String, required: true },
   pizzaCount: { type: Number, required: true },
   doughWeight: { type: Number, required: true },
 });
@@ -171,12 +172,15 @@ function guestEstimate(slices) {
       </dl>
     </section>
 
-    <section v-for="article in articles[entry.id]" :key="article.title" class="recipe-phase">
-      <h2>{{ article.title }}</h2>
-      <p v-if="article.intro">{{ article.intro }}</p>
-      <ul v-if="article.ingredients" class="extra-ingredients"><li v-for="item in article.ingredients" :key="item">{{ item }}</li></ul>
-      <ol><li v-for="step in article.steps" :key="step"><p>{{ step }}</p></li></ol>
-      <p v-if="article.source" class="extra-source"><a :href="article.source[1]">{{ article.source[0] }}</a></p>
+    <section v-if="articles[entry.id]" aria-labelledby="article-list-title">
+      <h2 id="article-list-title">{{ entry.kind }}</h2>
+      <div class="recipe-grid article-grid">
+        <a v-for="article in articles[entry.id]" :key="article.id" class="recipe-card" :href="`${path}/${article.id}`">
+          <span class="recipe-name">{{ article.title }}</span>
+          <span v-if="article.intro" class="recipe-time">{{ article.intro }}</span>
+          <span class="recipe-arrow" aria-hidden="true">→</span>
+        </a>
+      </div>
     </section>
   </div>
 </template>

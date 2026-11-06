@@ -45,3 +45,30 @@ test('extra calculators update as inputs change', async ({ page }) => {
   await page.getByLabel('Oprindelig vægt (g)').nth(4).fill('10');
   await expect(page.locator('.extra-results div').filter({ hasText: 'Olivenolie' })).toContainText('11,79 g');
 });
+
+test('extra recipes have separate URLs and remember step progress independently', async ({ page }) => {
+  await page.goto('/#/oevrigt/tomatsauce');
+  await page.getByRole('link', { name: /Frisk tomatsauce/ }).click();
+  await expect(page).toHaveURL(/\/tomatsauce\/frisk-tomatsauce$/);
+  await expect(page.getByRole('heading', { name: 'Ingredienser' })).toBeVisible();
+  await expect(page.locator('.method-progress')).toContainText('Trin 1 af 2');
+  await page.getByRole('button', { name: 'Markér færdigt trin 1', exact: true }).click();
+  await expect(page.locator('.step-complete p')).toHaveCSS('text-decoration-line', 'line-through');
+  await expect(page.locator('.method-progress')).toContainText('Trin 2 af 2');
+  await page.reload();
+  await expect(page.locator('.method-progress')).toContainText('Trin 2 af 2');
+
+  await page.getByRole('link', { name: '← Tomatsauce' }).click();
+  await page.getByRole('link', { name: /Kogt italiensk tomatsauce/ }).click();
+  await expect(page.locator('.method-progress')).toContainText('Trin 1 af 3');
+
+  await page.goto('/#/oevrigt/chili-og-hvidloeg');
+  await page.getByRole('link', { name: 'Hvidløgsolie' }).click();
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Hvidløgsolie');
+  await expect(page.locator('.method-progress')).toContainText('Trin 1 af 2');
+  await page.getByRole('button', { name: 'Markér færdigt trin 1', exact: true }).click();
+  await page.getByRole('button', { name: 'Markér færdigt trin 2', exact: true }).click();
+  await expect(page.getByText('Alle trin er færdige.')).toBeVisible();
+  await page.getByRole('button', { name: 'Start forfra' }).click();
+  await expect(page.locator('.method-progress')).toContainText('Trin 1 af 2');
+});

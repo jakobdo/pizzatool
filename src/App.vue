@@ -2,10 +2,11 @@
 import { calculateBatch } from './calculator.js';
 import { da as copy } from './da.js';
 import ExtraPage from './ExtraPage.vue';
-import { extras } from './extras.js';
+import { articles, extras } from './extras.js';
 import { methods } from './methods.js';
 import { readPreferences, savePreferences } from './preferences.js';
 import { recipes } from './recipes.js';
+import RecipeMethod from './RecipeMethod.vue';
 
 const recipePath = '#/opskrift/';
 const extraPath = '#/oevrigt/';
@@ -15,15 +16,23 @@ function recipeFromHash() {
   return recipes.find((recipe) => window.location.hash === recipePath + recipe.id);
 }
 
-function extraFromHash() {
-  return extras.find((entry) => window.location.hash === extraPath + entry.id);
+function extraRouteFromHash() {
+  const hash = window.location.hash;
+  for (const entry of extras) {
+    const path = extraPath + entry.id;
+    if (hash === path) return { entry };
+    const article = articles[entry.id]?.find(({ id }) => hash === `${path}/${id}`);
+    if (article) return { entry, article };
+  }
+  return {};
 }
 
 export default {
-  components: { ExtraPage },
+  components: { ExtraPage, RecipeMethod },
   data() {
     const preferences = readPreferences();
     const recipe = recipeFromHash();
+    const { entry, article } = extraRouteFromHash();
     const yeastByRecipe = preferences.yeastByRecipe ?? {};
     return {
       copy,
@@ -31,7 +40,8 @@ export default {
       recipePath,
       extraPath,
       extras,
-      selectedExtra: extraFromHash(),
+      selectedExtra: entry,
+      selectedArticle: article,
       selectedRecipe: recipe,
       pizzaCount: this.bounded(preferences.pizzaCount, 6, 1, 2000),
       doughPerPizza: this.bounded(preferences.doughPerPizza, 270, 100, 1000),
@@ -54,20 +64,30 @@ export default {
   },
   computed: {
     phases() {
+      if (this.selectedArticle) {
+        return [{
+          title: copy.preparation,
+          steps: this.selectedArticle.steps.map((text, index) => ({ text, number: index + 1, ingredients: [] })),
+        }];
+      }
       let number = 0;
       return methods[this.selectedRecipe.id].map(([title, ...steps]) => ({
         title,
         steps: steps.map((text) => {
           number += 1;
-          return { text, number, ingredients: this.stepIngredients(number) };
+          const ingredients = this.stepIngredients(number).map(({ name, amount }) => ({ name, grams: this.formatGrams(amount) }));
+          return { text: this.formatStep(text), number, ingredients };
         }),
       }));
     },
-    totalSteps() {
-      return this.phases.reduce((total, phase) => total + phase.steps.length, 0);
+    progressKey() {
+      return this.selectedArticle
+        ? `extra/${this.selectedExtra.id}/${this.selectedArticle.id}`
+        : this.selectedRecipe.id;
     },
     completedSteps() {
-      return Math.round(this.bounded(this.progressByRecipe[this.selectedRecipe.id], 0, 0, this.totalSteps));
+      const total = this.phases.reduce((sum, phase) => sum + phase.steps.length, 0);
+      return Math.round(this.bounded(this.progressByRecipe[this.progressKey], 0, 0, total));
     },
     safePizzaCount() {
       return Math.round(this.bounded(this.pizzaCount, 1, 1, 2000));
@@ -109,9 +129,11 @@ export default {
     },
     syncRoute() {
       const recipe = recipeFromHash();
-      const extra = extraFromHash();
-      if (recipe?.id === this.selectedRecipe?.id && extra?.id === this.selectedExtra?.id) return;
-      this.selectedExtra = extra;
+      const { entry, article } = extraRouteFromHash();
+      if (recipe?.id === this.selectedRecipe?.id && entry?.id === this.selectedExtra?.id &&
+        article?.id === this.selectedArticle?.id) return;
+      this.selectedExtra = entry;
+      this.selectedArticle = article;
       this.selectedRecipe = recipe;
       this.settings = recipe ? this.recipeSettings(recipe) : null;
       this.yeastType = this.recipeYeast(recipe, this.yeastByRecipe);
@@ -122,7 +144,7 @@ export default {
       });
     },
     updateTitle() {
-      const name = this.selectedRecipe?.name ?? this.selectedExtra?.name;
+      const name = this.selectedRecipe?.name ?? this.selectedArticle?.title ?? this.selectedExtra?.name;
       document.title = name ? `${name} · PizzaTool` : copy.documentTitle;
     },
     saveYeast() {
@@ -139,12 +161,8 @@ export default {
       });
     },
     setProgress(count) {
-      this.progressByRecipe[this.selectedRecipe.id] = count;
+      this.progressByRecipe[this.progressKey] = count;
       this.persistPreferences();
-      this.$nextTick(() => {
-        const target = this.$refs.recipeMethod.querySelector('[aria-current="step"], .method-complete');
-        target?.focus();
-      });
     },
     formatStep(text) {
       return text
@@ -220,6 +238,34 @@ export default {
     </section>
   </template>
 
+  <template v-else-if="selectedArticle">
+    <header class="recipe-header">
+      <a class="back-link" :href="extraPath + selectedExtra.id">← {{ selectedExtra.name }}</a>
+      <p class="recipe-category">{{ copy.extras }} · {{ selectedExtra.name }}</p>
+      <h1 ref="pageTitle" tabindex="-1">{{ selectedArticle.title }}</h1>
+      <p v-if="selectedArticle.intro" class="recipe-duration">{{ selectedArticle.intro }}</p>
+    </header>
+    <section v-if="selectedArticle.ingredients" class="recipe-phase article-ingredients">
+      <div class="section-heading">
+        <span class="step-number">01</span>
+        <h2>{{ copy.ingredients }}</h2>
+      </div>
+      <ul class="extra-ingredients">
+        <li v-for="item in selectedArticle.ingredients" :key="item">{{ item }}</li>
+      </ul>
+    </section>
+    <RecipeMethod
+      :phases="phases"
+      :completed-steps="completedSteps"
+      :section-number="selectedArticle.ingredients ? '02' : '01'"
+      :hint="copy.articleMethodHint"
+      @progress="setProgress"
+    />
+    <p v-if="selectedArticle.source" class="extra-source article-source">
+      <a :href="selectedArticle.source[1]">{{ selectedArticle.source[0] }}</a>
+    </p>
+  </template>
+
   <template v-else-if="selectedExtra">
     <header class="recipe-header">
       <a class="back-link" href="#/">← {{ copy.backHome }}</a>
@@ -227,7 +273,7 @@ export default {
       <h1 ref="pageTitle" tabindex="-1">{{ selectedExtra.name }}</h1>
       <p>{{ selectedExtra.description }}</p>
     </header>
-    <ExtraPage :key="selectedExtra.id" :entry="selectedExtra" :pizza-count="safePizzaCount" :dough-weight="safeDoughWeight" />
+    <ExtraPage :key="selectedExtra.id" :entry="selectedExtra" :path="extraPath + selectedExtra.id" :pizza-count="safePizzaCount" :dough-weight="safeDoughWeight" />
   </template>
 
   <template v-else>
@@ -403,46 +449,7 @@ export default {
       </aside>
     </section>
 
-    <section ref="recipeMethod" class="recipe-method" aria-labelledby="method-title">
-      <div class="section-heading">
-        <span class="step-number">03</span>
-        <div>
-          <h2 id="method-title">{{ copy.method }}</h2>
-          <p>{{ copy.methodHint }}</p>
-        </div>
-      </div>
-      <div class="method-progress">
-        <span>{{ completedSteps }} / {{ totalSteps }} {{ copy.stepsComplete }}</span>
-        <button v-if="completedSteps" type="button" @click="setProgress(0)">{{ copy.restartMethod }}</button>
-      </div>
-      <p v-if="completedSteps === totalSteps" class="method-complete" tabindex="-1">{{ copy.methodComplete }}</p>
-      <section v-for="phase in phases" :key="phase.title" class="recipe-phase">
-        <h3>{{ phase.title }}</h3>
-        <ol :start="phase.steps[0].number">
-          <li
-            v-for="step in phase.steps"
-            :key="step.number"
-            :class="{ 'step-complete': step.number <= completedSteps }"
-            :aria-current="step.number === completedSteps + 1 ? 'step' : undefined"
-            :tabindex="step.number === completedSteps + 1 ? -1 : undefined"
-          >
-            <button
-              v-if="step.number === completedSteps || step.number === completedSteps + 1"
-              type="button"
-              class="step-action"
-              :aria-label="`${step.number === completedSteps ? copy.undoStep : copy.finishStep} ${step.number}`"
-              @click="setProgress(step.number === completedSteps ? step.number - 1 : step.number)"
-            ></button>
-            <p>{{ formatStep(step.text) }}</p>
-            <ul v-if="step.ingredients.length" class="step-ingredients" :aria-label="copy.stepIngredients">
-              <li v-for="item in step.ingredients" :key="item.name">
-                <strong>{{ formatGrams(item.amount) }} g</strong> {{ item.name }}
-              </li>
-            </ul>
-          </li>
-        </ol>
-      </section>
-    </section>
+    <RecipeMethod :phases="phases" :completed-steps="completedSteps" section-number="03" :hint="copy.methodHint" @progress="setProgress" />
   </template>
 
   <footer class="page-footer">
