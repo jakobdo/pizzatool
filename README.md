@@ -8,6 +8,10 @@ The recipe details—hydration, salt, oil, sweetener, yeast percentage,
 fermentation time, and preferment proportions—are available under **Adjust
 recipe details**.
 
+## Website
+
+Visit [PizzaTool](https://jakobdo.github.io/pizzatool/).
+
 ## Run it
 
 Open `index.html` in a browser, or serve this directory with any static web
