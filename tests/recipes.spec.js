@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { da } from '../src/da.js';
 import { recipes } from '../src/recipes.js';
 
 test('catalog links open each recipe with ingredients and a method', async ({ page }) => {
@@ -6,6 +7,12 @@ test('catalog links open each recipe with ingredients and a method', async ({ pa
   page.on('pageerror', (error) => errors.push(error.message));
   await page.goto('/');
   await expect(page.locator('.recipe-card')).toHaveCount(recipes.length);
+
+  const sortedRecipes = [...recipes].sort((a, b) => a.name.localeCompare(b.name, 'da'));
+  await expect(page.locator('.recipe-name')).toHaveText(sortedRecipes.map(({ name }) => name));
+  await expect(page.locator('.recipe-card .recipe-category')).toHaveText(
+    sortedRecipes.map(({ category }) => da.recipeGroups[category]),
+  );
 
   for (const recipe of recipes) {
     await page.locator(`a[href="#/opskrift/${recipe.id}"]`).click();

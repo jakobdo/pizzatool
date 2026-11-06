@@ -6,6 +6,7 @@ import { readPreferences, savePreferences } from './preferences.js';
 import { recipes } from './recipes.js';
 
 const recipePath = '#/opskrift/';
+const sortedRecipes = [...recipes].sort((a, b) => a.name.localeCompare(b.name, 'da'));
 
 function recipeFromHash() {
   return recipes.find((recipe) => window.location.hash === recipePath + recipe.id);
@@ -18,7 +19,7 @@ export default {
     const yeastByRecipe = preferences.yeastByRecipe ?? {};
     return {
       copy,
-      recipes,
+      recipes: sortedRecipes,
       recipePath,
       selectedRecipe: recipe,
       pizzaCount: this.bounded(preferences.pizzaCount, 6, 1, 2000),
